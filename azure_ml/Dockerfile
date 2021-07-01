@@ -6,5 +6,5 @@ RUN conda install -c r -y pip=20.1.1 openssl=1.1.1c r-base rpy2 && \
     pip install --no-cache-dir azureml-defaults
     
 ENV TAR="/bin/tar"
-RUN R -e "install.packages(c('remotes', 'reticulate', 'optparse'), repos = 'https://cloud.r-project.org/')"
+RUN R -e "install.packages(c('remotes', 'reticulate', 'optparse', 'azuremlsdk'), repos = 'https://cloud.r-project.org/')"
 RUN R -e "remotes::install_github('https://github.com/colbyford/ubiquity')"
