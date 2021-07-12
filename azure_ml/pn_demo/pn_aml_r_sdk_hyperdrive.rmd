@@ -1,0 +1,109 @@
+---
+  title: "Peripheral Neuropathy Scalability Demo with `ubiquity` on Azure Machine Learning"
+output:
+  html_document:
+  df_print: paged
+---
+  
+# About Azure Machine Learning
+Azure Machine Learning is a cloud-based environment for training, deploying, managing, and tracking machine learning models. In this notebook, we are using the R SDK to automate and scale the `ubiquity` package's simulation process using HyperDrive on a cluster computing environment.
+
+# Connect to the Workspace
+
+If you are executing this notebook from within an Azure Machine Learning Compute Instance, the following command will load the local workspace information from the local settings (using `load_workspace_from_config()`). Otherwise, you will need to use the `get_workspace` function and provide the resource group and subscription information.
+
+```{r}
+library(azuremlsdk)
+ws <- load_workspace_from_config()
+# ws <- get_workspace(name, subscription_id = "", resource_groups = "")
+experiment_name <- "pn_ubiquity_experiment"
+exp <- experiment(ws, experiment_name)
+```
+
+# Create a Compute Target
+
+Provision an Azure Machine Learning compute target for distributing the `ubiquity` workload. A compute cluster is a managed-compute infrastructure that will remotely run machine learning tasks. Using a multi-node cluster, different parameter sets will be sent to each node to scale the search activities as part of the `ubiquity` framework.
+
+Notes:
+ - If `min_nodes = 0`, the cluster autoscales down to zero nodes when it isn't being used, and scales up automatically when a job is submitted.
+- You should set the `max_nodes` setting to however many parameter combinations you wish to test.
+- If you run into "memory allocation" errors, you may need to use large VM sizes (for example, use D15v2 VMs over D2v2 VMs).
+
+```{r}
+cluster_name <- "ubiquity-cluster"
+compute_target <- get_compute(ws, cluster_name = cluster_name)
+if (is.null(compute_target)) {
+  # vm_size <- "STANDARD_D2_V2"
+  # vm_size <- "STANDARD_D16_V3"
+  vm_size <- "STANDARD_D15_V2"
+  compute_target <- create_aml_compute(workspace = ws,
+                                       cluster_name = cluster_name,
+                                       vm_size = vm_size,
+                                       min_nodes = 0,
+                                       max_nodes = 2)
+  
+  
+  wait_for_provisioning_completion(compute_target, show_output = TRUE)
+}
+```
+
+# Set up Estimator
+
+An Estimator wraps run configuration information for specifying details of executing an R script.
+Below, we specify a number of settings:
+  - The environment, which pulls from a pre-built Docker container image on Dockerhub that contains all the dependencies to run the `ubiquity` package.
+- The entry script, which runs on each node of the compute cluster. This is the training script that defines the steps to be performed on each parameter set.
+- The general input information, such as the data folder, the number of cross-validation folds, and the input files.
+- The compute target as defined above.
+
+
+```{r}
+
+env <- r_environment("ubiquity-env", custom_docker_image = "cford38/ubiquity_aml")
+
+## Create the estimator
+est <- estimator(source_directory = '.',
+                 entry_script = 'pn_task.R',
+                 script_params = list("--data_folder" = "source_data/"),
+                 compute_target = compute_target,
+                 environment = env)
+```
+
+# Set up HyperDrive
+
+HyperDrive is a tool within Azure Machine Learning that allows for scalable hyperparameter tuning. Here we define the total search grid from which random parameter combinations will be selected. In the `hyperdrive_config`, we specify the primary metric, the maximum total runs, and the maximum concurrent runs.
+
+Some considerations:
+  - The primary metric is used to pick which parameter combination is optimal given the search space. Since we have se the primary metric's goal to `"MAXIMIZE"`, it will pick the run with the highest value for the defined primary metric.
+ - `max_total_runs` defines how many parameter combinations to generate and distribute across the cluster. `max_concurrent_runs` defines how many of these runs can be performed at a time. Generally, the `max_concurrent_runs` should be equal to the number of nodes in the cluster or some multiple thereof such that the distribution of tasks up to the `max_total_runs` is distributed appropriately.
+ - In this example, we do not specify an early termination policy, but this is an option for HyperDrive. You can specify for the job to complete early if the performance of the runs is not improving. This is mainly used when parameters are numerical rather than categorical.
+
+```{r}
+param_sampling <- grid_parameter_sampling(list("scen" = choice(c("S01","S02"))))
+
+## Define the primary metric goal
+goal = primary_metric_goal("MAXIMIZE")
+
+## Define the early termination policy
+# early_termination_policy = median_stopping_policy(evaluation_interval = 1L,
+#                                                   delay_evaluation = 5L)
+
+## Create the HyperDrive configuration
+hyperdrive_run_config = hyperdrive_config(hyperparameter_sampling = param_sampling,
+                                          primary_metric_name = 'scen_output',
+                                          primary_metric_goal = goal,
+                                          max_total_runs = 2,
+                                          max_concurrent_runs = 2,
+                                          # policy = early_termination_policy,
+                                          estimator = est)
+```
+
+# Submit Experiment
+
+Once all of the configurations are set for the HyperDrive experiment, the run can be submitted to the remote compute cluster. You can then see the results of each child run (parameter combination) from the Azure Machine Learning workspace UI.
+
+```{r}
+## Submit the HyperDrive experiment
+run = submit_experiment(exp, hyperdrive_run_config)
+# run = submit_experiment(exp, est)
+```

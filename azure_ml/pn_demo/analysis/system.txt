@@ -1,0 +1,257 @@
+# Author: name <email>
+#
+# System Units:
+#                
+#   mass          [=] ?
+#   volume        [=] ?
+#   concentration [=] ?
+#   time          [=] ?
+
+# #-------------#
+# | References  |
+# #-------------#
+#
+# Common conversions
+#
+# Half-life to rate:
+#
+#        ln(2)
+#  kel = -----
+#        thalf
+#
+# Convert ng/ml to nM
+#
+#    ng   1000 ml        nmoles
+#  X -- x ------- x --------------- = X/MW (KDA)
+#    ml    1L       MW (KDA)*1000 ng
+# 
+# Convert from nM to ng/ml:
+#
+# X nM  ===> X*MW(KDA) 
+# 
+# Converting dose in mpk to nmoles
+#
+#   mg            1e6 ng    1 nmole
+# X -- x BW(kg) x ------ x -----------------  =>  X*1e3*BW/MW
+#   kg            1 mg      MW (KDA) * 1000
+#
+#
+# Converting dose in mpk to nM    
+#
+#   mg            1e6 ng    1 nmole             1
+# X -- x BW(kg) x ------ x ----------------- x ---  =>  X*1e3*BW/MW/Vp
+#   kg            1 mg      MW (KDA) * 1000    V(L)
+#
+
+# Define Sets
+#
+# <SET:SETNAME>  E1; E2; E3
+
+
+# JMH todo:
+#   - find units for ??
+
+# #-------------#
+# | Parameters  |
+# #-------------#
+#
+# System parameters
+#     name                   value               lower             upper    units   editable    grouping
+#                                                bound             bound                                 # THETA  Description
+<P>   CL                      0.0355             eps               Inf      L/hr    yes         System   #  1     Typical value of clearance (L/hr)                                
+<P>   Q                       0.0267             eps               Inf      L/hr    yes         System   #  2     Typical value of intercompartment CL (L/hr)                     
+<P>   V1                      5.0                eps               Inf      L       yes         System   #  3     Typical value of central volume (L)                             
+<P>   V2                      8.21               eps               Inf      L       yes         System   #  4     Typical value of peripheral volume (L)                          
+<P>   KDEC                    0.00647            eps               Inf      1/hr    yes         System   #  5     Polatuzumab vedoting deconjugation rate (1/hr)                  
+<P>   CORR                    1.45               eps               Inf      ??      yes         System   #  6     Polatuzumab vedotin assay correction                            
+<P>   LOGKE0                  -7.929407          eps               Inf      hr      yes         System   #  7     Distribution rate constant of acMMAE to the effect compartment  
+<P>   LOGALPH                 -13.00015          eps               Inf      hr      yes         System   #  8     Drug effect parameter                                           
+<P>   LOGBETA                 0.3148107          eps               Inf      hr      yes         System   #  9     Weibull function parameter                                      
+<P>   b_AGE_HZ                -2.55E-3           eps               Inf      hr      yes         System   # 10     Effect of serum albumin concentrations on hazard rate  [probably meant age here]         
+<P>   b_WT_HZ                 0.0219             eps               Inf      hr      yes         System   # 11     Effect of body weight on hazard rate                            
+<P>   b_SEX_HZ                0.296              eps               Inf      hr      yes         System   # 12     Effect of sex on hazard rate                                    
+<P>   b_PNBL_HZ               -0.222             eps               Inf      hr      yes         System   # 13     Effect of active grade 1 PN at baseline (yes/no) on hazard rate 
+<P>   b_PRTX_HZ               -7.94E-3           eps               Inf      hr      yes         System   # 14     Effect of prior radiotherapy (yes/no) on hazard rate            
+<P>   b_PVIN_HZ               -0.102             eps               Inf      hr      yes         System   # 15     Effect of prior vinca alkaloid (yes/no) on hazard rate          
+<P>   b_PPLAT_HZ              0.159              eps               Inf      hr      yes         System   # 16     Effect of prior platinum treatment (yes/no) on hazard rate      
+<P>   b_RITX_HZ               -0.577             eps               Inf      hr      yes         System   # 17     Effect of combination with rituximab (yes/no) on hazard rate    
+<P>   b_DLBCL_HZ              -0.0697            eps               Inf      hr      yes         System   # 18     Effect of tumor histology as DLBCL on hazard rate               
+<P>   b_THIST_HZ              0.688              eps               Inf      hr      yes         System   # 19     Effect of tumor histology as non-FL on hazard rate              
+<P>   b_BTUM_HZ               0.169              eps               Inf      hr      yes         System   # 20     Effect of baseline sum of product of longest tumor dimensions   
+<P>   b_ALB_HZ                0.0582             eps               Inf      hr      yes         System   # 21     Effect of serum albumin concentrations on hazard rate           
+
+
+
+<P>   AGEref                  65                 eps               Inf      yr      yes         Cov_Ref
+<P>   BWref                   80                 eps               Inf      kg      yes         Cov_Ref
+<P>   BWdose                  80                 eps               Inf      kg      yes         Cov_Ref
+<P>   ALBref                  39                 eps               Inf      ??      yes         Cov_Ref
+<P>   BTUMref                 3000               eps               Inf      ??      yes         Cov_Ref
+
+
+
+# Continuous covariates
+<CV:WT>         ; times;      [   0 ];    hr    
+<CV:WT>         ; values;     [  80 ];    kg     
+<CV:AGE>        ; times;      [   0 ];    hr    
+<CV:AGE>        ; values;     [  65 ];    yr
+<CV:BTUM>       ; times;      [   0 ];    hr    
+<CV:BTUM>       ; values;     [3000 ];    yr
+<CV:ALB>        ; times;      [   0 ];    hr    
+<CV:ALB>        ; values;     [  39 ];    yr
+
+
+# Discrete covariates
+<CV:SEX>        ; times;      [   0 ];    hr    
+<CV:SEX>        ; values;     [   0 ];    ??  
+<CV:PNBL>       ; times;      [   0 ];    hr    
+<CV:PNBL>       ; values;     [   0 ];    ??  
+<CV:PRTX>       ; times;      [   0 ];    hr    
+<CV:PRTX>       ; values;     [   0 ];    ??  
+<CV:PVIN>       ; times;      [   0 ];    hr    
+<CV:PVIN>       ; values;     [   0 ];    ??  
+<CV:PPLAT>      ; times;      [   0 ];    hr    
+<CV:PPLAT>      ; values;     [   0 ];    ??  
+<CV:RITX>       ; times;      [   0 ];    hr    
+<CV:RITX>       ; values;     [   0 ];    ??  
+<CV:DLBLCL>     ; times;      [   0 ];    hr    
+<CV:DLBLCL>     ; values;     [   0 ];    ??  
+<CV:MZL>        ; times;      [   0 ];    hr    
+<CV:MZL>        ; values;     [   0 ];    ??  
+<CV:MCL>        ; times;      [   0 ];    hr    
+<CV:MCL>        ; values;     [   0 ];    ??  
+<CV:CLL>        ; times;      [   0 ];    hr    
+<CV:CLL>        ; values;     [   0 ];    ??  
+<CV:SLL>        ; times;      [   0 ];    hr    
+<CV:SLL>        ; values;     [   0 ];    ??  
+<CV:INHL>       ; times;      [   0 ];    hr    
+<CV:INHL>       ; values;     [   0 ];    ??  
+
+
+# Name the default parameter set described by the <P> above
+<PSET:default> Default parameters from Metrum
+
+
+# ---------
+<PSET:TVPK>     TV acMMAE PK
+<PSET:TVPK:CL>  0.0695  
+<PSET:TVPK:Q>   0.102 
+<PSET:TVPK:V1>  3.564   
+<PSET:TVPK:V2>  1.574   
+# ---------
+
+
+# 
+# Covariates
+# ---------
+# For running simulations, we create covariates that are assocaited with the
+# default parameter set
+# #     name      times/values  values   units
+#   <CV:cvname>  ; times;      [ 0 10];    weeks
+#   <CV:cvname>  ; values;     [70 55];    kg     
+#
+# These can either be interpolated linearly or as step funcitons
+# #         name    
+#   <CVTYPE:cvname> linear
+#   <CVTYPE:cvname> step
+#
+
+# Interindividual Variability
+# ---------------------------
+# <IIV:ETANAME>    0.1            # Variance/diagonal element
+# <IIV:ETANAME:LN> PNAME          # Lognormal distirbution (LN) applied to parameter PNAME 
+# <IIVCOR:ETANAME1:ETANAME2> 0.01 # Covariance between ETANAME1 and ETANAME2
+
+# Defining the IIV
+<IIV:ETACL>       0.488  #  Clearance (L/hr)
+<IIV:ETAQ>        0.269  #  Intercompartment CL (L/hr)
+<IIV:ETAV1>       0.0519 #  Central volume (L)
+<IIV:ETAV2>       0.707  #  Peripheral volume (L)
+<IIV:ETAKDEC>     0.053  #  Polatuzumab vedoting deconjugation rate (1/hr)
+
+# Applying it to the system parameters
+<IIV:ETACL:LN>     CL    
+<IIV:ETAQ:LN>      Q     
+<IIV:ETAV1:LN>     V1    
+<IIV:ETAV2:LN>     V2    
+<IIV:ETAKDEC:LN>   KDEC  
+
+
+# Static Secondary Parameters
+# ---------------------------
+<As> K10  =  CL/V1
+<As> K12  =  Q/V1
+<As> K21  =  Q/V2
+<As> KE0  =  SIMINT_EXP[LOGKE0]
+<As> K1E  =  KE0 
+<As> ALPH =  SIMINT_EXP[LOGALPH]   # Shape parameter
+<As> BETA =  SIMINT_EXP[LOGBETA] 
+
+
+<As> covar1 = b_AGE_HZ*(AGE-AGEref) + b_WT_HZ*(WT-BWref) + b_SEX_HZ*SEX
+<As> covar2 = b_PNBL_HZ*PNBL + b_PRTX_HZ*PRTX + b_PVIN_HZ*PVIN
+<As> covar3 = b_PPLAT_HZ*PPLAT + b_RITX_HZ*RITX
+<As> covar4 = b_DLBCL_HZ*DLBLCL + b_THIST_HZ*(MZL + MCL + CLL + SLL + INHL) + b_BTUM_HZ*SIMINT_LOGN[BTUM/BTUMref]
+<As> covar5 = b_ALB_HZ*(ALB-ALBref)
+<As> covar = covar1+covar2+covar3+covar4+covar5
+
+
+# Dynamic Secondary Parameters
+# ----------------------------
+<Ad> ADC  = (((CADC/V1)*0.718)*CORR) 
+<Ad> EDRUGT = ALPH*EFFC
+<Ad> HAZT = 0.0
+<IF:HAZT:COND> SIMINT_GT[SIMINT_TIME][0.0]; BETA*SIMINT_POWER[EDRUGT][BETA]*SIMINT_POWER[SIMINT_TIME][(BETA-1.0)]*SIMINT_EXP[covar]
+<IF:HAZT:ELSE> 0.0 
+
+
+# #-------------------#
+# |Input Information |
+# #-------------------#
+#
+# Bolus Events
+# ------------
+# # times/events state   values        scale      units
+# <B:times>;             [  0  ];      ?;          ???
+# <B:events>;      ??;   [1.0  ];      ?;          ???    
+
+# Infusion Rate 
+# ------------
+# #  name    time/levels  values  scale                                    units
+<R:Dinf>;    times;       [0];     1;                                      hours 
+<R:Dinf>;    levels;      [0];     BWdose*(1/145455)*3.585*(1000*1000);    mg/kg/hr 
+
+
+# #-----------------------------#
+# | ODEs, and State Information |
+# #-----------------------------#
+
+# Initial Conditions
+# ------------------
+# define the non-zero initial conditions
+# <I> name = name0
+
+# ODEs
+# ----
+<ODE:CADC>  -(K10+K12)*CADC - KDEC*CADC + K21*PADC + Dinf
+<ODE:PADC>  K12*CADC - K21*PADC
+<ODE:CUMHAZ> HAZT
+<ODE:EFFC>   K1E*ADC-KE0*EFFC
+
+
+# #---------#
+# | Outputs |
+# #---------#
+# Outputs that begin with QC will not be displayed in the GUI
+<O> TMP_OBS     = 0.0
+
+<O> DVADC    = ADC
+<O> CHZ      = CUMHAZ
+<O> SUR      = SIMINT_EXP[-CUMHAZ]
+<O> QC_HAZT  = HAZT
+<O> QC_covar = covar
+
+<TS:hours>    1.0
+<TS:days>     1.0/24.0
+<TS:weeks>    1.0/24.0/7.0
+
